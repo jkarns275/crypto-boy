@@ -1,6 +1,6 @@
 package edu.oswego.crypto.boy.cryptosystems
 
-abstract class Cryptosystem<PuKey, PrKey>(val publicKey: PuKey, val privateKey: PrKey) {
+abstract class Cryptosystem(val chunkSize: Int) {
 
     /**
      * Encrpyts the supplied plaintext with the public key
