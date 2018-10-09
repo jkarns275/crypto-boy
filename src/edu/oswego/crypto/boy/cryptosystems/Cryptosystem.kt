@@ -1,21 +1,24 @@
 package edu.oswego.crypto.boy.cryptosystems
 
-abstract class Cryptosystem(val chunkSize: Int) {
+import java.nio.ByteBuffer
+
+
+interface Cryptosystem {
 
     /**
      * Encrpyts the supplied plaintext with the public key
      */
-    abstract fun encrypt(plaintext: ArrayList<Byte>): ArrayList<Byte>
+    fun encrypt(plaintext: ArrayList<Byte>): ArrayList<Byte>
 
     /**
      * Decrypts the given ciphertext.
      */
-    abstract fun decrypt(ciphertext: ArrayList<Byte>): ArrayList<Byte>
+    fun decrypt(ciphertext: ArrayList<Byte>): ArrayList<Byte>
 
     /**
      * Return a short description of this cryptosystem.
      */
-    abstract fun cryptosystemInfo(): String
+    fun cryptosystemInfo(): String
 
-    abstract override fun toString(): String
+    fun publicKeyBytes(): ByteBuffer
 }
