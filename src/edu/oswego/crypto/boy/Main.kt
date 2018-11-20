@@ -1,5 +1,7 @@
 package edu.oswego.crypto.boy
 
+import edu.oswego.crypto.boy.ui.UI
+
 fun main(args: Array<String>) {
-    println("Ligma")
+    UI.test()
 }
