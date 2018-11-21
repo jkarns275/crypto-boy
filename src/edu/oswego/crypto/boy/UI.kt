@@ -1,4 +1,4 @@
-package edu.oswego.crypto.boy.ui
+package edu.oswego.crypto.boy
 
 object UI {
 
@@ -28,9 +28,31 @@ object UI {
         print(ty.string)
         setColor(Color.Reset)
         print("] @")
+        setColor(Color.Magenta)
         print(src)
+        setColor(Color.Reset)
         print(": ")
         println(msg)
+    }
+
+    fun prompt(prompt: String): String {
+        print("[")
+        setColor(Color.Yellow)
+        print("Prompt")
+        setColor(Color.Reset)
+        print("] @")
+        setColor(Color.Magenta)
+        print("client")
+        setColor(Color.Reset)
+        print(": ")
+        print(prompt)
+        print(" -> ")
+        val a = readLine()
+        if (a == null) {
+            return prompt(prompt)
+        } else {
+            return a
+        }
     }
 
     fun test() {
