@@ -3,22 +3,22 @@ package edu.oswego.crypto.boy.cryptosystems
 import java.nio.ByteBuffer
 
 
-interface Cryptosystem {
+abstract class AsymmetricCryptosystem<PuK: Key, PrK: Key>(val publicKey: PuK) {
 
     /**
      * Encrpyts the supplied plaintext with the public key
      */
-    fun encrypt(plaintext: ArrayList<Byte>): ArrayList<Byte>
+    abstract fun encrypt(plaintext: ByteArray): ByteArray
 
     /**
      * Decrypts the given ciphertext.
      */
-    fun decrypt(ciphertext: ArrayList<Byte>): ArrayList<Byte>
+    abstract fun decrypt(ciphertext: ByteArray, privateKey: PrK): ByteArray
 
     /**
      * Return a short description of this cryptosystem.
      */
-    fun cryptosystemInfo(): String
+    abstract fun cryptosystemInfo(): String
 
-    fun publicKeyBytes(): ByteBuffer
+    abstract fun publicKeyBytes(): ByteBuffer
 }
