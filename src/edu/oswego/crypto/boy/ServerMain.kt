@@ -1,7 +1,6 @@
 package edu.oswego.crypto.boy
 
-import edu.oswego.crypto.boy.cryptosystems.AsymmetricCryptosystem
-import edu.oswego.crypto.boy.cryptosystems.Key
+import edu.oswego.crypto.boy.cryptosystems.*
 import edu.oswego.crypto.boy.packets.chat.*
 import edu.oswego.crypto.boy.packets.crypto.CipherTextPacket
 import edu.oswego.crypto.boy.packets.crypto.CryptoPacketFactory
@@ -51,11 +50,12 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
 }
 
 fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
-        serve(messageQueues: ConcurrentHashMap<String, ConcurrentLinkedQueue<ChatPacket>>, sock: Socket, crypto: Crypto,
-              keygen: (ByteArray) -> PuK, puk: PuK, prk: PrK) {
+        serve(messageQueues: ConcurrentHashMap<String, ConcurrentLinkedQueue<ChatPacket>>, sock: Socket,
+              keygen: (ByteArray) -> PuK, cryptoFactory: (PuK) -> Crypto, puk: PuK, prk: PrK) {
+    val serverCrypto = cryptoFactory(puk)
     var username: String? = null
     try {
-        val cryptoPacketFactory = CryptoPacketFactory(crypto, keygen)
+        val cryptoPacketFactory = CryptoPacketFactory(serverCrypto, keygen)
         val inputStream = sock.getInputStream()
         val outputStream = sock.getOutputStream()
 
@@ -68,10 +68,10 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
         val clientPublicKey = helloPacket.publicKey
         val serverHello = HelloPacket(puk)
         writeChunk(outputStream, serverHello.toBytes())
-        crypto.publicKey = clientPublicKey
+        val clientCrypto = cryptoFactory(clientPublicKey)
 
         // Client sends Join request
-        var plaintext: ByteArray = recvPlainText(inputStream, cryptoPacketFactory, crypto, prk) ?: return
+        var plaintext: ByteArray = recvPlainText(inputStream, cryptoPacketFactory, serverCrypto, prk) ?: return
         var chatPacket = ChatPacketFactory.fromBytes(plaintext) ?: return
         if (chatPacket !is JoinPacket) return
         username = chatPacket.username
@@ -79,7 +79,7 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
         // Username is taken, send rejection
         if (messageQueues.putIfAbsent(chatPacket.username, q) != q) {
             val rejectPacket = RejectPacket(RejectPacket.RejectionReasons.DUPLICATE_USERNAME)
-            val ciphertext = CipherTextPacket(rejectPacket.toBytes(), crypto).toBytes()
+            val ciphertext = CipherTextPacket(rejectPacket.toBytes(), clientCrypto).toBytes()
             writeChunk(outputStream, ciphertext)
             return
         } else {
@@ -89,7 +89,7 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
 
         // Server sends join ACK with the server name
         val joinAckPacket = JoinAckPacket(serverName)
-        val ciphertext = CipherTextPacket(joinAckPacket.toBytes(), crypto).toBytes()
+        val ciphertext = CipherTextPacket(joinAckPacket.toBytes(), clientCrypto).toBytes()
         writeChunk(outputStream, ciphertext)
 
         // Until the client disconnects:
@@ -97,7 +97,7 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
         // - Send messages from every other user to user by emptying the queue
         while (true) {
             if (inputStream.available() > 4) {
-                val plaintext = recvPlainText(inputStream, cryptoPacketFactory, crypto, prk) ?: return
+                val plaintext = recvPlainText(inputStream, cryptoPacketFactory, serverCrypto, prk) ?: return
                 val packet = ChatPacketFactory.fromBytes(plaintext)
                 if (packet is ByePacket) break
                 else if (packet is MsgPacket) {
@@ -111,7 +111,7 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
             }
             while (q.isNotEmpty()) {
                 val packet = q.poll()
-                val ciphertext = CipherTextPacket(packet.toBytes(), crypto).toBytes()
+                val ciphertext = CipherTextPacket(packet.toBytes(), clientCrypto).toBytes()
                 writeChunk(outputStream, ciphertext)
             }
         }
@@ -127,6 +127,9 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
 }
 
 fun main(args: Array<String>) {
+    val puk = RSAKey(LongKey(0), LongKey(0)) as RSAKey<Key, Key>
+    val prk = LongKey(1)
+
     var name = ""
     while (true) {
         name = UI.prompt("What is your name?")
@@ -147,11 +150,14 @@ fun main(args: Array<String>) {
     }
 
     val map = ConcurrentHashMap<String, ConcurrentLinkedQueue<ChatPacket>>()
-    val socket = ServerSocket(SERVER_PORT)
+    val serverSocket = ServerSocket(SERVER_PORT)
 
-    // TODO: This
+    val a = RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, LongKey>
+
     while (true) {
-        val socket = socket.accept()
-        thread { serve(map, ) }
+        val socket = serverSocket.accept()
+        thread { serve(map, socket, RSAKey.keygengen(8, LongKey.keygen, 8, LongKey.keygen),
+                RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, LongKey>,
+                puk, prk) }
     }
 }

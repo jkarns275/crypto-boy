@@ -14,7 +14,7 @@ class HelloPacket<PuK: Key>(val publicKey: PuK): CryptoPacket() {
         bo.putShort(Ops.OP_HELLO)
         bo.putLong(HelloPacket.MAGIC)
         bo.putShort(publicKey.length().toShort())
-        bo.put(this.publicKey.bytes())
+        bo.put(this.publicKey.bytes)
         return bo.array()
     }
 

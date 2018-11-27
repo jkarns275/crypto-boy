@@ -10,7 +10,7 @@ object ChatPacketFactory {
         assert(bytes[0] == ChatPacket.Ops.OP_JOIN)
         val length = bytes[1].toInt()
         val sbytes = ByteArray(length)
-        for (i in 0..length) {
+        for (i in 0 until length) {
             sbytes[i] = bytes[2 + i]
         }
         return JoinPacket(String(sbytes))
@@ -21,7 +21,7 @@ object ChatPacketFactory {
         assert(bytes[0] == ChatPacket.Ops.OP_JOIN_ACK)
         val length = bytes[1].toInt()
         val sbytes = ByteArray(length)
-        for (i in 0..length) {
+        for (i in 0 until length) {
             sbytes[i] = bytes[2 + i]
         }
         return JoinAckPacket(String(sbytes))
@@ -38,12 +38,19 @@ object ChatPacketFactory {
     fun msgPacket(bytes: ByteArray): MsgPacket{
         assert(bytes[0] == ChatPacket.Ops.OP_MSG)
         val bb = ByteBuffer.wrap(bytes)
+
         val usernameLength = bb[1].toInt()
+
         val ubytes = ByteArray(usernameLength)
-        bb.get(ubytes, 2, usernameLength)
+        val ubb = ByteBuffer.wrap(ubytes)
+        ubb.put(bytes, 2, usernameLength)
+
         val length = bb.getShort(2 + usernameLength).toInt()
+
         val sbytes = ByteArray(length)
-        bb.get(sbytes, 4 + usernameLength, length)
+        val sbb = ByteBuffer.wrap(sbytes)
+        sbb.put(bytes, 4 + usernameLength, length)
+
         return MsgPacket(String(ubytes), String(sbytes))
     }
 
@@ -52,7 +59,7 @@ object ChatPacketFactory {
         assert(bytes.get(0) == ChatPacket.Ops.OP_LEAVING)
         val length = bytes[1].toInt()
         val sbytes = ByteArray(length)
-        for (i in 0..length) {
+        for (i in 0 until length) {
             sbytes[i] = sbytes[2 + i]
         }
         return LeavingPacket(String(sbytes))

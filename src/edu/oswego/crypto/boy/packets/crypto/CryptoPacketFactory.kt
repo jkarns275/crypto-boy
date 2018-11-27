@@ -21,7 +21,7 @@ class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK
         val len = bb.getShort(2).toInt()
 
         val buf = ByteBuffer.allocate(len)
-        bb.get(bytes, 4, len)
+        buf.get(bytes, 4, len)
 
         return CipherTextPacket(buf.array(), crypto)
     }
@@ -41,7 +41,7 @@ class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK
         val len = bb.getShort(10).toInt()
 
         val buf = ByteBuffer.allocate(len)
-        bb.get(bytes, 12, len)
+        buf.put(bytes, 12, len)
 
         return HelloPacket(keygen(buf.array()))
     }
