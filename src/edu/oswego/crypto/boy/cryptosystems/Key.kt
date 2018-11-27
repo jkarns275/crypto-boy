@@ -2,6 +2,9 @@ package edu.oswego.crypto.boy.cryptosystems
 
 import java.nio.ByteBuffer
 
-abstract class Key(val bytes: ByteArray) {
+open class Key(val bytes: ByteArray) {
+    companion object {
+        val keygen = { bytes: ByteArray -> Key(bytes) }
+    }
     fun length(): Int = bytes.size
 }

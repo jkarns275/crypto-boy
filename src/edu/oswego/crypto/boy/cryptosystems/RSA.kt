@@ -3,6 +3,7 @@ package edu.oswego.crypto.boy.cryptosystems
 import java.lang.Integer.min
 import java.math.BigInteger
 import java.nio.ByteBuffer
+import java.util.*
 
 class RSA<PuK, PrK>(publicKey: PuK)
     : AsymmetricCryptosystem<PuK, PrK>(publicKey) where PuK: RSAKey<Key, Key>, PrK: Key {
@@ -23,7 +24,7 @@ class RSA<PuK, PrK>(publicKey: PuK)
     private fun blockSizeAndNBlocks(plaintext: ByteArray): Pair<Int, Int> {
         val blocksize = BigInteger(publicKey.n.bytes).bitLength() / 8
         val nblocks = plaintext.size / blocksize
-        return if (nblocks * blocksize != plaintext.size)
+        return if (nblocks * blocksize < plaintext.size)
             Pair(blocksize, nblocks + 1)
         else
             Pair(blocksize, nblocks)
@@ -35,16 +36,17 @@ class RSA<PuK, PrK>(publicKey: PuK)
         val e = BigInteger(publicKey.e.bytes)
         val blocksizeAndNBlocks = blockSizeAndNBlocks(plaintext)
         val blocksize = blocksizeAndNBlocks.first
-        var nblocks = blocksizeAndNBlocks.second
-        if (nblocks * blocksize != plaintext.size)
-            nblocks += 1
-        var cipherBlocks = Array<ByteArray>(plaintext.size / publicKey.n.length() + 1) { _ -> ByteArray(blocksize) }
+        val nblocks = blocksizeAndNBlocks.second
+        var cipherBlocks = Array(plaintext.size / publicKey.n.length() + 1) { _ -> ByteArray(blocksize) }
         val tmp = ByteArray(blocksize + 1)
         val bb = ByteBuffer.wrap(plaintext)
+        println("Block size = $blocksize; nblocks = $nblocks")
         for (i in 0 until nblocks) {
             tmp.fill(0)
-            bb.reset()
-            bb.get(tmp, blocksize * i, min(blocksize * (i + 1), plaintext.size))
+            val ind = min(blocksize, plaintext.size - blocksize * i)
+            println("Ind = $ind; tmplen = ${tmp.size}")
+            bb.get(tmp, blocksize * i, min(blocksize, plaintext.size - blocksize * i))
+            println("Tmp: ${Arrays.toString(tmp)}")
             val num = BigInteger(tmp)
             val res = num.modPow(e, n).toByteArray()
             ByteBuffer.wrap(res).get(cipherBlocks[i])
@@ -68,8 +70,7 @@ class RSA<PuK, PrK>(publicKey: PuK)
         val n = BigInteger(publicKey.n.bytes)
         for (i in 0 until nblocks) {
             tmp.fill(0)
-            bb.reset()
-            bb.get(tmp, blocksize * i, min(blocksize * (i + 1), ciphertext.size))
+            bb.get(tmp, blocksize * i, min(blocksize, ciphertext.size - blocksize * i))
             plaintext.put(BigInteger(tmp).modPow(d, n).toByteArray(), blocksize * i, blocksize)
         }
         return plaintext.array()
