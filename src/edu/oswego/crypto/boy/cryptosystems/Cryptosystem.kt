@@ -20,5 +20,5 @@ abstract class AsymmetricCryptosystem<PuK: Key, PrK: Key>(var publicKey: PuK) {
      */
     abstract fun cryptosystemInfo(): String
 
-    abstract fun publicKeyBytes(): ByteBuffer
+    abstract fun publicKeyBytes(): ByteArray
 }
