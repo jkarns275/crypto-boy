@@ -148,14 +148,6 @@ fun main(args: Array<String>) {
     val puk = RSAKey(Key(pukByteArray), Key(ByteBuffer.allocate(4).putInt(pubE).array())) as RSAKey<Key, Key>
     val prk = Key(prvByteArray)
 
-    val rsa = RSA<RSAKey<Key, Key>, Key>(puk)
-    val plain = "Can i text u -HH".toByteArray()
-    println("Plain = ${Arrays.toString(plain)}")
-    val a = rsa.encrypt(plain)
-    println("Cipher = ${Arrays.toString(a)}")
-    val b = rsa.decrypt(a, prk)
-    println("Decrypted = ${Arrays.toString(b)}")
-/*
     var name = ""
     while (true) {
         name = UI.prompt("What is your name?")
@@ -178,12 +170,10 @@ fun main(args: Array<String>) {
     val map = ConcurrentHashMap<String, ConcurrentLinkedQueue<ChatPacket>>()
     val serverSocket = ServerSocket(SERVER_PORT)
 
-    val a = RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, LongKey>
-
     while (true) {
         val socket = serverSocket.accept()
         thread { serve(map, socket, RSAKey.keygengen(65, Key.keygen, 8, Key.keygen),
-                RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, LongKey>,
+                RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, Key>,
                 puk, prk) }
-    }*/
+    }
 }

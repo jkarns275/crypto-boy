@@ -40,13 +40,10 @@ class RSA<PuK, PrK>(publicKey: PuK)
         var cipherBlocks = Array(plaintext.size / publicKey.n.length() + 1) { _ -> ByteArray(blocksize) }
         val tmp = ByteArray(blocksize)
         val bb = ByteBuffer.wrap(plaintext)
-        println("Block size = $blocksize; nblocks = $nblocks")
         for (i in 0 until nblocks) {
             tmp.fill(0)
             val ind = min(blocksize, plaintext.size - blocksize * i)
-            println("Ind = $ind; tmplen = ${tmp.size}")
             bb.get(tmp, blocksize * i, min(blocksize, plaintext.size - blocksize * i))
-            println("Tmp: ${Arrays.toString(tmp)}")
             val num = BigInteger(tmp)
             val res = num.modPow(e, n).toByteArray()
             ByteBuffer.wrap(res).get(cipherBlocks[i])
@@ -59,11 +56,11 @@ class RSA<PuK, PrK>(publicKey: PuK)
     }
 
     override fun decrypt(ciphertext: ByteArray, privateKey: PrK): ByteArray {
-        var plaintext = ByteBuffer.allocate(ciphertext.size)
+        val plaintext = ByteBuffer.allocate(ciphertext.size)
         var i = 0
         val blocksizeAndNBlocks = blockSizeAndNBlocks(ciphertext)
         val blocksize = blocksizeAndNBlocks.first
-        var nblocks = blocksizeAndNBlocks.second
+        val nblocks = blocksizeAndNBlocks.second
         val tmp = ByteArray(blocksize)
         val bb = ByteBuffer.wrap(ciphertext)
         val d = BigInteger(privateKey.bytes)
