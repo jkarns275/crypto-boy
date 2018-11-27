@@ -2,6 +2,8 @@ package edu.oswego.crypto.boy
 
 object UI {
 
+    val LOG_ENABLED = true
+
     enum class Color(val value: Int) {
         Red(31),
         Green(32),
@@ -19,7 +21,8 @@ object UI {
     enum class MessageTy(val color: Color, val string: String) {
         Info(Color.Yellow, "Info"),
         Msg(Color.Cyan, "Msg"),
-        Err(Color.Red, "Err")
+        Err(Color.Red, "Err"),
+        Dbg(Color.Magenta, "Debug")
     }
 
     fun putMessage(src: String, msg: String, ty: MessageTy) {
@@ -52,6 +55,12 @@ object UI {
             return prompt(prompt)
         } else {
             return a
+        }
+    }
+
+    fun log(src: String, msg: String) {
+        if (LOG_ENABLED) {
+            putMessage(src, msg, MessageTy.Dbg)
         }
     }
 

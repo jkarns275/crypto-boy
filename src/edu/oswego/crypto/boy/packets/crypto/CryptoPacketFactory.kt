@@ -1,23 +1,22 @@
-package edu.oswego.crypto.boy.networking
+package edu.oswego.crypto.boy.packets.crypto
 
+import edu.oswego.crypto.boy.UI
 import edu.oswego.crypto.boy.cryptosystems.AsymmetricCryptosystem
 import edu.oswego.crypto.boy.cryptosystems.Key
-import edu.oswego.crypto.boy.networking.packets.CipherTextPacket
-import edu.oswego.crypto.boy.networking.packets.GoodbyePacket
-import edu.oswego.crypto.boy.networking.packets.HelloPacket
-import edu.oswego.crypto.boy.networking.packets.Packet
 import java.nio.ByteBuffer
 
-class PacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>() {
+class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>(
+        val crypto: Crypto,
+        val keygen: (ByteArray) -> PuK) {
 
     @Throws(java.nio.BufferOverflowException::class, java.lang.IndexOutOfBoundsException::class)
-    fun cipherTextPacket(bytes: ByteArray, crypto: Crypto): CipherTextPacket<PuK, PrK, Crypto>? {
+    fun cipherTextPacket(bytes: ByteArray): CipherTextPacket<PuK, PrK, Crypto>? {
         if (bytes.size < 5) { return null }
 
         val bb = ByteBuffer.wrap(bytes)
 
         val op = bb.getShort(0)
-        assert(op == Packet.Packet.OP_CIPHER_TEXT)
+        assert(op == CryptoPacket.Ops.OP_CIPHER_TEXT)
 
         val len = bb.getShort(2).toInt()
 
@@ -28,13 +27,13 @@ class PacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>
     }
 
     @Throws(java.nio.BufferOverflowException::class, java.lang.IndexOutOfBoundsException::class)
-    fun helloPacket(bytes: ByteArray, keygen: (ByteArray) -> PuK): HelloPacket<PuK>? {
+    fun helloPacket(bytes: ByteArray): HelloPacket<PuK>? {
         if (bytes.size < 13) { return null }
 
         val bb = ByteBuffer.wrap(bytes)
 
         val op = bb.getShort(0)
-        assert(op == Packet.Packet.OP_HELLO)
+        assert(op == CryptoPacket.Ops.OP_HELLO)
 
         val magic = bb.getLong(2)
         assert(magic == HelloPacket.HelloPacket.MAGIC)
@@ -48,17 +47,30 @@ class PacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>
     }
 
     @Throws(java.nio.BufferOverflowException::class, java.lang.IndexOutOfBoundsException::class)
-    fun goodbyePaket(bytes: ByteArray): GoodbyePacket? {
+    fun goodbyePacket(bytes: ByteArray): GoodbyePacket? {
         if (bytes.size < 10) { return null }
 
         val bb = ByteBuffer.wrap(bytes)
 
         val op = bb.getShort(0)
-        assert(op == Packet.Packet.OP_GOODBYE)
+        assert(op == CryptoPacket.Ops.OP_GOODBYE)
 
         val magic = bb.getLong(2)
         assert(magic == GoodbyePacket.GoodbyePacket.MAGIC)
 
-        return GoodbyePacket()
+        return GoodbyePacket
+    }
+
+    fun fromBytes(bytes: ByteArray): CryptoPacket? {
+        try {
+            when (bytes[0].toShort()) {
+                CryptoPacket.Ops.OP_HELLO -> return helloPacket(bytes)
+                CryptoPacket.Ops.OP_CIPHER_TEXT -> return cipherTextPacket(bytes)
+                CryptoPacket.Ops.OP_GOODBYE -> return goodbyePacket(bytes)
+            }
+        } catch (e: Exception) {
+            UI.log("CryptoPacketFactory", "Encountered the following exception: \n" + e.toString())
+        }
+        return null
     }
 }

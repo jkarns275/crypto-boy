@@ -3,7 +3,7 @@ package edu.oswego.crypto.boy.cryptosystems
 import java.nio.ByteBuffer
 
 
-abstract class AsymmetricCryptosystem<PuK: Key, PrK: Key>(val publicKey: PuK) {
+abstract class AsymmetricCryptosystem<PuK: Key, PrK: Key>(var publicKey: PuK) {
 
     /**
      * Encrpyts the supplied plaintext with the public key

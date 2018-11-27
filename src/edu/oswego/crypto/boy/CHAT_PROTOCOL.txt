@@ -1,0 +1,46 @@
+
+
+------------------------------------------------------------------------------------------------------------------------
+= The Protocol
+------------------------------------------------------------------------------------------------------------------------
+This protocol must be encrypted using the protocol specified in CRYPTO_PROTOCOL.txt.
+
+       Client                                           Server
+
+Join ^ Msg (OP = JOIN)
+     | + user name
+     v                         -------->
+                                          Msg (OP = JOIN_ACK)  ^  Join Ack
+                                                 + server name |   => Note: If the username is taken,
+                              <--------                        v            send with OP = REJECT.
+       [Msg (OP = MSG)]       <------->        [Msg (OP = MSG)]
+                              <--------        Msg (OP = LEAVING)  => Note: this will be sent whenever someone else
+                                                                              leaves the chat room.
+     ^ Msg (OP = BYE)
+     |                        -------->                        ^ Connection ends
+     v                                                         |   => Note: At this time, Msg (OP = LEAVING) will be
+                                                               x            sent to all connected users at this time,
+                                                                            along with the name of the user who left
+
+------------------------------------------------------------------------------------------------------------------------
+= Messages
+------------------------------------------------------------------------------------------------------------------------
+
+Messages (denoted Msg (OP = some_op)) are byte strings, where the first byte is an op-code of some kind. This op-code
+tells the server what the message contains. The following table denotes what each op-code means and what the message
+it precedes contains.
+
+----------------|-------------------------------------------------------------------------------------------------------
+OP              |   (name : length in bytes)+
+----------------|-------------------------------------------------------------------------------------------------------
+JOIN = 0        | (username_len : 1) (username : username_len)
+----------------|-------------------------------------------------------------------------------------------------------
+JOIN_ACK = 1    | (servername_len : 1) (servername : servername_len)
+----------------|-------------------------------------------------------------------------------------------------------
+REJECT = 2      | (reason : 1)
+----------------|-------------------------------------------------------------------------------------------------------
+MSG = 3         | (username_len : 1) (username : username_len) (msg_len : 2) (msg : msg_len)
+----------------|-------------------------------------------------------------------------------------------------------
+LEAVING = 4     | (username_len : 1) (username : username_len)
+----------------|-------------------------------------------------------------------------------------------------------
+BYE = 5         |

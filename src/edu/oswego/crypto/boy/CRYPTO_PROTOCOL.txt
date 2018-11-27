@@ -13,7 +13,3 @@ Exch | + public key
      |                          -------->                      ^ End
      v                                                         | Connection
                                                                x
-
-A server may have many clients connected at the same time.
-
-The server must broadcast messages to all connected clients

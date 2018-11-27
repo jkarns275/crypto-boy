@@ -1,9 +1,8 @@
-package edu.oswego.crypto.boy.networking.packets
+package edu.oswego.crypto.boy.packets.crypto
 
-import edu.oswego.crypto.boy.cryptosystems.Key
 import java.nio.ByteBuffer
 
-class GoodbyePacket: Packet() {
+object GoodbyePacket: CryptoPacket() {
 
     object GoodbyePacket {
         val MAGIC: Long = 0x420DEADBEEF
@@ -11,7 +10,7 @@ class GoodbyePacket: Packet() {
 
     override fun toBytes(): ByteArray {
         val bo = ByteBuffer.allocate(2)
-        bo.putShort(Packet.OP_HELLO)
+        bo.putShort(Ops.OP_HELLO)
         return bo.array()
     }
 
