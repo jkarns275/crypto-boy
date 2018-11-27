@@ -38,7 +38,7 @@ class RSA<PuK, PrK>(publicKey: PuK)
         val blocksize = blocksizeAndNBlocks.first
         val nblocks = blocksizeAndNBlocks.second
         var cipherBlocks = Array(plaintext.size / publicKey.n.length() + 1) { _ -> ByteArray(blocksize) }
-        val tmp = ByteArray(blocksize + 1)
+        val tmp = ByteArray(blocksize)
         val bb = ByteBuffer.wrap(plaintext)
         println("Block size = $blocksize; nblocks = $nblocks")
         for (i in 0 until nblocks) {
@@ -64,7 +64,7 @@ class RSA<PuK, PrK>(publicKey: PuK)
         val blocksizeAndNBlocks = blockSizeAndNBlocks(ciphertext)
         val blocksize = blocksizeAndNBlocks.first
         var nblocks = blocksizeAndNBlocks.second
-        val tmp = ByteArray(blocksize + 1)
+        val tmp = ByteArray(blocksize)
         val bb = ByteBuffer.wrap(ciphertext)
         val d = BigInteger(privateKey.bytes)
         val n = BigInteger(publicKey.n.bytes)
