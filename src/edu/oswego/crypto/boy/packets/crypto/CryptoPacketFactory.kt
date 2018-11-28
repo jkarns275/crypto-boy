@@ -63,13 +63,14 @@ class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK
 
     fun fromBytes(bytes: ByteArray): CryptoPacket? {
         try {
-            when (bytes[0].toShort()) {
+            when (bytes[1].toShort()) {
                 CryptoPacket.Ops.OP_HELLO -> return helloPacket(bytes)
                 CryptoPacket.Ops.OP_CIPHER_TEXT -> return cipherTextPacket(bytes)
                 CryptoPacket.Ops.OP_GOODBYE -> return goodbyePacket(bytes)
             }
         } catch (e: Exception) {
             UI.log("CryptoPacketFactory", "Encountered the following exception: \n" + e.toString())
+            e.printStackTrace()
         }
         return null
     }

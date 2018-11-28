@@ -9,10 +9,10 @@ class CipherTextPacket<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, P
         val ciphertext: ByteArray, val crypto: Crypto): CryptoPacket() {
 
     override fun toBytes(): ByteArray {
+        val ciphertext: ByteArray = crypto.encrypt(ciphertext)
         val bo = ByteBuffer.allocate(2 + 2 + ciphertext.size)
         bo.putShort(Ops.OP_CIPHER_TEXT)
         bo.putShort(ciphertext.size.toShort())
-        val ciphertext: ByteArray = crypto.encrypt(ciphertext)
         bo.put(ciphertext)
 
         return bo.array()

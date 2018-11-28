@@ -2,6 +2,7 @@ package edu.oswego.crypto.boy.packets.chat
 
 import edu.oswego.crypto.boy.UI
 import java.nio.ByteBuffer
+import java.util.*
 
 object ChatPacketFactory {
 
@@ -75,7 +76,7 @@ object ChatPacketFactory {
         try {
             when (bytes[0]) {
                 ChatPacket.Ops.OP_JOIN      -> return joinPacket(bytes)
-                ChatPacket.Ops.OP_JOIN_ACK  -> return joinPacket(bytes)
+                ChatPacket.Ops.OP_JOIN_ACK  -> return joinAckPacket(bytes)
                 ChatPacket.Ops.OP_REJECT    -> return rejectPacket(bytes)
                 ChatPacket.Ops.OP_MSG       -> return msgPacket(bytes)
                 ChatPacket.Ops.OP_LEAVING   -> return leavingPacket(bytes)
