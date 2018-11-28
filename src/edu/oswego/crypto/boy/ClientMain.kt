@@ -58,7 +58,7 @@ fun main(args: Array<String>) {
     }
     // */
 
-    UI.putMessage("client", "Connecting to server @" + serverIp.toString() + ":42069", UI.MessageTy.Info)
+    UI.putMessage("client", "Connecting to server @" + serverIp.toString() + ":42069...", UI.MessageTy.Info)
     val rsaKeygen = RSAKey.keygengen(65, Key.keygen, 4, Key.keygen)
     val puk = RSAKey(Key(pukByteArray), Key(pubE))
     val prvKey = Key(prvByteArray)
@@ -82,7 +82,6 @@ fun main(args: Array<String>) {
         sendEncrypted(outputStream, joinPacket, serverCrypto)
 
         val response = recvPlainText(inputStream, cryptoPacketFactory, clientCrypto, prvKey)
-
         var chatPacket = ChatPacketFactory.fromBytes(response)
 
         if (chatPacket !is JoinAckPacket) {
@@ -90,7 +89,9 @@ fun main(args: Array<String>) {
             else throw Exception("Expected JoinAckPacket or RejectPacket, instead got $chatPacket")
         }
 
-        val shouldRun = AtomicBoolean(false)
+        UI.putMessage("client", "Server name: ${chatPacket.servername}", UI.MessageTy.Info)
+
+        val shouldRun = AtomicBoolean(true)
 
         val t1 = thread {
             while (true) {
@@ -103,23 +104,29 @@ fun main(args: Array<String>) {
                 }
                 sendEncrypted(outputStream, MsgPacket(name, nextLine), serverCrypto)
             }
-            shouldRun.set(true)
+            shouldRun.set(false)
         }
         val t2 = thread {
             while (shouldRun.get()) {
+                if (inputStream.available() < 4) {
+                    Thread.sleep(5)
+                    continue
+                }
                 val chunk = recvPlainText(inputStream, cryptoPacketFactory, clientCrypto, prvKey)
                 val packet = ChatPacketFactory.fromBytes(chunk)
                 if (packet is MsgPacket) {
                     UI.putMessage(packet.sender, packet.msg, UI.MessageTy.Msg)
                 } else if (packet is LeavingPacket) {
-                    UI.putMessage("server", "User ${packet.username} has left", UI.MessageTy.Info)
+                    UI.putMessage("server", "@${packet.username} has left", UI.MessageTy.Info)
+                } else if (packet is JoinPacket) {
+                    UI.putMessage("server", "@${packet.username} has joined", UI.MessageTy.Info)
                 } else {
                     UI.log("client", "Unexpected packet $packet")
                 }
             }
         }
         t1.join()
-        t2.join()
+        t2.stop()
     } catch (e: Exception) {
         e.printStackTrace()
     }

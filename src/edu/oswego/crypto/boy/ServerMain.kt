@@ -21,6 +21,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
+import kotlin.experimental.or
 
 val SERVER_PORT: Int = 42069
 val MAX_PACKET_SIZE: Int = (1 shl 16) + 1
@@ -68,6 +69,8 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
         val joinAckPacket = JoinAckPacket(serverName)
         sendEncrypted(outputStream, joinAckPacket, clientCrypto)
 
+        UI.putMessage("server", "$username has joined", UI.MessageTy.Info)
+
         // Until the client disconnects:
         // - Send messages from user to all other users (including self) by adding to queue
         // - Send messages from every other user to user by emptying the queue
@@ -79,13 +82,17 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
                 else if (packet is MsgPacket) {
                     // Name spoofing!
                     if (!packet.sender.equals(username)) break
+                    UI.putMessage(packet.sender, packet.msg, UI.MessageTy.Msg)
                     messageQueues.forEach({ k, v -> assert(v.offer(packet)) })
                 } else {
                     // That is all that the user should be sending... disconnect since they're doing something funky.
                     break
                 }
             }
-            while (q.isNotEmpty()) sendEncrypted(outputStream, q.poll(), clientCrypto)
+            while (q.isNotEmpty()) {
+                sendEncrypted(outputStream, q.poll(), clientCrypto)
+            }
+            Thread.sleep(5)
         }
 
     } catch (e: Exception) {
@@ -96,20 +103,21 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
     if (username != null) {
         val leavePacket = LeavingPacket(username)
         messageQueues.forEach( { k, v -> assert(v.offer(leavePacket)) } )
+        UI.putMessage("server", "$username has left", UI.MessageTy.Info)
     }
 }
 
 fun main(args: Array<String>) {
-
+//    println("${ByteBuffer.allocate(4).put(byteArrayOf(0, 0, 0, -58)).getInt(0)}")
     val puk = RSAKey(Key(pukByteArray), Key(pubE)) as RSAKey<Key, Key>
     val prk = Key(prvByteArray)
-     // /*
+    /*
     val pukByteArray = ByteArray(pubN.size, { i -> pubN[i].toByte() })
     val prvByteArray = ByteArray(prvExpr.size, { i -> prvExpr[i].toByte() })
     println("Key size: ${pukByteArray.size}")
 
     val rsa = RSA<RSAKey<Key, Key>, Key>(puk)
-    val plain = "Can i text u kjh;ashjjkljkl;j;klj;kj;ljkljmkl m90981     -HH".toByteArray()
+    val plain = byteArrayOf(1, 1, 98)
     println("Plain = ${Arrays.toString(plain)}")
     val a = rsa.encrypt(plain)
     println("Cipher = ${Arrays.toString(a)}")
@@ -117,6 +125,7 @@ fun main(args: Array<String>) {
     println("Decrypted = ${Arrays.toString(b)}")
     return
     // */
+    /*
     var name = ""
     while (true) {
         name = UI.prompt("What is your name?")
@@ -125,7 +134,7 @@ fun main(args: Array<String>) {
         } else {
             break
         }
-    }
+    }*/
     serverName = ""
     while (true) {
         serverName = UI.prompt("What will the server be named?")
@@ -145,7 +154,6 @@ fun main(args: Array<String>) {
             serve(map, socket, RSAKey.keygengen(65, Key.keygen, 4, Key.keygen),
                 RSA.rsaFactory<RSAKey<Key, Key>, Key>() as (RSAKey<out Key, out Key>) -> AsymmetricCryptosystem<RSAKey<out Key, out Key>, Key>,
                 puk, prk)
-            println("Done")
         }
     }
 }

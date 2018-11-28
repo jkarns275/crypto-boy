@@ -21,20 +21,18 @@ object NetUtils {
         if (len > MAX_PACKET_SIZE) throw Exception("Received packet larger than MAX_PACKET_SIZE = $MAX_PACKET_SIZE bytes. $len")
         val res = inputStream.readNBytes(len)
         if (res.size < len) throw Exception("Unexpected end of stream")
-        println("Received chunk of size ${res.size}; ${Arrays.toString(res)}")
         return res
     }
 
     fun writeChunk(outputStream: OutputStream, chunk: ByteArray) {
-        println("Sending chunk of size ${chunk.size}; ${Arrays.toString(chunk)}")
         outputStream.write(ByteBuffer.allocate(4).putInt(chunk.size).array())
         outputStream.write(chunk)
     }
 
     fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>> sendEncrypted(outputStream: OutputStream,
                                                                            packet: ChatPacket, crypto: Crypto) {
-        println("Sending chunk $packet (encrypteD) of size ${packet.toBytes().size}; ${Arrays.toString(packet.toBytes())}")
-        writeChunk(outputStream, CipherTextPacket(packet.toBytes(), crypto).toBytes())
+        val encrypted = CipherTextPacket(packet.toBytes(), crypto)
+        writeChunk(outputStream, encrypted.toBytes())
     }
 
     fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
@@ -46,7 +44,6 @@ object NetUtils {
         if (packet !is CipherTextPacket<*, *, *>) throw Exception("Expected CipherTextPacket, instead got $packet")// End connection after encountering non app data
         val cipherTextPacket = packet as CipherTextPacket<PuK, PrK, Crypto>
         val de = cipherTextPacket.decrypt(prk)
-        println("Recieved unencrypted chunk: ${Arrays.toString(de)}")
         return de
     }
 

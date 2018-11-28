@@ -20,10 +20,11 @@ class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK
 
         val len = bb.getShort(2).toInt()
 
-        val buf = ByteBuffer.allocate(len)
-        buf.get(bytes, 4, len)
+        val buf = ByteArray(len)
+        for (i in 0 until len)
+            buf[i] = bb[4 + i]
 
-        return CipherTextPacket(buf.array(), crypto)
+        return CipherTextPacket(buf, crypto)
     }
 
     @Throws(java.nio.BufferOverflowException::class, java.lang.IndexOutOfBoundsException::class)

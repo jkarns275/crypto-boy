@@ -25,24 +25,37 @@ class RSA<PuK, PrK>(publicKey: PuK)
     override fun encrypt(plaintext: ByteArray): ByteArray {
         val n = BigInteger(publicKey.n.bytes)
         val e = BigInteger(publicKey.e.bytes)
-        val blocksize = BigInteger(publicKey.n.bytes).bitLength() / 8 + 1
+        val blocksize = publicKey.n.bytes.size + 1
         // The width of the output of encryption in bytes.1
         // The width of the chunks, in bytes, that will be encrypted
-        val blockwidth = blocksize - 2
+        val blockwidth = 1 // publicKey.n.bytes.size // blocksize - 3
         var nblocks = plaintext.size / blockwidth
         if (blockwidth * nblocks < plaintext.size)
             nblocks += 1
-        var cipherBlocks = Array(plaintext.size / publicKey.n.length() + 1) { _ -> ByteArray(blocksize) }
-        val tmp = ByteArray(blocksize)
-        val bb = ByteBuffer.wrap(plaintext)
+        var cipherBlocks = Array(nblocks) { _ -> ByteArray(blocksize) }
+        val tmp = ByteArray(blockwidth)
+
+        // Adds padding to plaintext
+        val bb = ByteBuffer.allocate(blockwidth * nblocks)
+        bb.put(plaintext)
+
+        val altTmp = ByteBuffer.allocate(blocksize)
+
         for (i in 0 until nblocks) {
+            altTmp.clear()
             tmp.fill(0)
-            val ind = min(blockwidth, plaintext.size - blockwidth * i)
-            bb.get(tmp, blockwidth * i, min(blockwidth, plaintext.size - blockwidth * i))
+            val offset = i * blockwidth
+            for (j in 0 until blockwidth) {
+                tmp[j] = bb[offset + j]
+            }
             val num = BigInteger(tmp)
             val res = num.modPow(e, n).toByteArray()
-            val a = cipherBlocks[i]
-            ByteBuffer.wrap(res).get(cipherBlocks[i], 0, res.size)
+            if (res.size < blocksize) {
+                for (i in 0 until (blocksize - res.size))
+                    altTmp.put(0)
+            }
+            altTmp.put(res)
+            ByteBuffer.wrap(cipherBlocks[i]).put(altTmp.array())
         }
 
         var ciphertext: ByteBuffer = ByteBuffer.allocate(blocksize * nblocks)
@@ -53,11 +66,12 @@ class RSA<PuK, PrK>(publicKey: PuK)
 
     override fun decrypt(ciphertext: ByteArray, privateKey: PrK): ByteArray {
         var i = 0
-        val blocksize = BigInteger(publicKey.n.bytes).bitLength() / 8 + 1
-        val blockwidth = blocksize - 2
+        val blocksize = publicKey.n.bytes.size + 1
+        val blockwidth = 1
         var nblocks = ciphertext.size / blocksize
-        if (blocksize * nblocks < ciphertext.size)
+        if (blocksize * nblocks < ciphertext.size) {
             nblocks += 1
+        }
         val plaintext = ByteBuffer.allocate(nblocks * blockwidth)
         val tmp = ByteArray(blocksize)
         val bb = ByteBuffer.wrap(ciphertext)
@@ -65,12 +79,11 @@ class RSA<PuK, PrK>(publicKey: PuK)
         val n = BigInteger(publicKey.n.bytes)
         for (i in 0 until nblocks) {
             tmp.fill(0)
-            val endIndex = min(ciphertext.size, blocksize * (i + 1))
             val offset = blocksize * i
-            for (i in 0 until endIndex)
+            for (i in 0 until blocksize)
                 tmp[i] = bb[offset + i]
-            val res = BigInteger(tmp).modPow(d, n).toByteArray()
-            plaintext.put(res, blockwidth * i, res.size)
+            val res = BigInteger(tmp).modPow(d, n)
+            plaintext.put(res.toInt().toByte())
         }
         return plaintext.array()
     }
