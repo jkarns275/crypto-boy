@@ -2,7 +2,7 @@ package edu.oswego.crypto.boy
 
 object UI {
 
-    val LOG_ENABLED = true
+    const val LOG_ENABLED = true
 
     enum class Color(val value: Int) {
         Red(31),
@@ -24,6 +24,9 @@ object UI {
         Err(Color.Red, "Err"),
         Dbg(Color.Magenta, "Debug")
     }
+
+    const val clear: String = "\u001b[H\u001b[J"
+    const val gotoOrigin: String = "\u001b[0;0H"
 
     fun putMessage(src: String, msg: String, ty: MessageTy) {
         print("[")

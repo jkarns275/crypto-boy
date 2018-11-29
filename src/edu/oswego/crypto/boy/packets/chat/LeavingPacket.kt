@@ -1,6 +1,7 @@
 package edu.oswego.crypto.boy.packets.chat
 
 import java.nio.ByteBuffer
+import java.util.*
 
 class LeavingPacket(val username: String) : ChatPacket() {
     override fun toBytes(): ByteArray {

@@ -108,7 +108,6 @@ fun <PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK, PrK>>
 }
 
 fun main(args: Array<String>) {
-//    println("${ByteBuffer.allocate(4).put(byteArrayOf(0, 0, 0, -58)).getInt(0)}")
     val puk = RSAKey(Key(pukByteArray), Key(pubE)) as RSAKey<Key, Key>
     val prk = Key(prvByteArray)
     /*
@@ -117,12 +116,14 @@ fun main(args: Array<String>) {
     println("Key size: ${pukByteArray.size}")
 
     val rsa = RSA<RSAKey<Key, Key>, Key>(puk)
-    val plain = byteArrayOf(1, 1, 98)
-    println("Plain = ${Arrays.toString(plain)}")
-    val a = rsa.encrypt(plain)
-    println("Cipher = ${Arrays.toString(a)}")
-    val b = rsa.decrypt(a, prk)
-    println("Decrypted = ${Arrays.toString(b)}")
+    for (i in Byte.MIN_VALUE..Byte.MAX_VALUE) {
+        val plain = byteArrayOf(i.toByte())
+        println("Plain = ${Arrays.toString(plain)}")
+        val a = rsa.encrypt(plain)
+        println("Cipher = ${Arrays.toString(a)}")
+        val b = rsa.decrypt(a, prk)
+        println("Decrypted = ${Arrays.toString(b)}")
+    }
     return
     // */
     /*
@@ -147,6 +148,8 @@ fun main(args: Array<String>) {
 
     val map = ConcurrentHashMap<String, ConcurrentLinkedQueue<ChatPacket>>()
     val serverSocket = ServerSocket(SERVER_PORT)
+
+    UI.putMessage("server", "Running server on @${serverSocket.inetAddress}", UI.MessageTy.Info)
 
     while (true) {
         val socket = serverSocket.accept()

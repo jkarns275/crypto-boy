@@ -17,60 +17,32 @@ import edu.oswego.crypto.boy.packets.chat.*
 import edu.oswego.crypto.boy.packets.crypto.CipherTextPacket
 import edu.oswego.crypto.boy.packets.crypto.CryptoPacketFactory
 import edu.oswego.crypto.boy.packets.crypto.HelloPacket
+import java.io.BufferedInputStream
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 
-val ROUTER_IP = InetAddress.getByName("0.0.0.0")
+const val delay_ms: Int = 70
 
-fun main(args: Array<String>) {
-    val victim = args[0] == "-isvictim"
-    var name = ""
-    while (true) {
-        name = UI.prompt("What is your name?")
-        if ("" == name) {
-            UI.putMessage("client", "Please enter a non-empty name", UI.MessageTy.Err)
-        } else {
-            break
-        }
-    }
+fun maliciousClient(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<ChatPacket>) {
+    var name = "doom"
 
-    var serverIpStr = "0.0.0.0"
-    var serverIp: InetAddress = ROUTER_IP // InetAddress.getByName(serverIpStr)
-    /* comment this line out to allow custom ip
-    // Uncomment this if you want to
-    while (true) {
-        serverIpStr = UI.prompt("What is the server ip?")
-        if ("" == serverIpStr) {
-            UI.putMessage("client", "Please empty a non-empty ip", UI.MessageTy.Err)
-        } else {
-            try {
-                serverIp = InetAddress.getByName(serverIpStr)
-                break
-            } catch (e: Exception) {
-                UI.putMessage("client", "Please empty a valid ip you fool", UI.MessageTy.Err)
-            }
-            continue
-        }
-    }
-    // */
-
-    UI.putMessage("client", "Connecting to server @" + serverIp.toString() + ":$ROUTER_PORT...", UI.MessageTy.Info)
     val rsaKeygen = RSAKey.keygengen(65, Key.keygen, 4, Key.keygen)
     val puk = RSAKey(Key(pukByteArray), Key(pubE))
     val prvKey = Key(prvByteArray)
     try {
         val clientCrypto = RSA<RSAKey<Key, Key>, Key>(puk)
         val cryptoPacketFactory = CryptoPacketFactory(clientCrypto, rsaKeygen)
-        val socket = Socket(serverIp, ROUTER_PORT)
+        UI.putMessage("evil", "Connecting to server @" + serverIp.toString() + ":$SERVER_PORT...", UI.MessageTy.Info)
+        val socket = Socket(serverIp, SERVER_PORT)
+        UI.putMessage("evil", "Connected to server @" + serverIp.toString() + ":$SERVER_PORT", UI.MessageTy.Info)
         val outputStream = socket.getOutputStream()
         val inputStream = socket.getInputStream()
-
-        if (victim)
-            outputStream.write(byteArrayOf(-1))
 
         val helloPacket = HelloPacket(puk)
         writeChunk(outputStream, helloPacket.toBytes())
@@ -97,15 +69,27 @@ fun main(args: Array<String>) {
         val shouldRun = AtomicBoolean(true)
 
         val t1 = thread {
+            print("??????")
+            UI.putMessage("evil", "Beginning villainous broadcast.", UI.MessageTy.Info)
+            val sw = File("sw1.txt")
+            val bufferedReader = Scanner(sw.inputStream())
+            val lines = Array(14) { _ -> "" }
             while (true) {
-                val nextLine = readLine()
-                if (nextLine == null) {
-                    sendEncrypted(outputStream, ByePacket, serverCrypto)
-                    UI.log("client", "Leaving server.")
-                    socket.close()
+                if (!bufferedReader.hasNext()) {
                     break
                 }
-                sendEncrypted(outputStream, MsgPacket(name, nextLine), serverCrypto)
+                for (i in 0 until 14)
+                    lines[i] = bufferedReader.nextLine()
+                val delay = lines[0].trim().toLong()
+                val sb = StringBuilder(68 * 13 + 32)
+                sb.append(UI.clear)
+                sb.append(UI.gotoOrigin)
+                for (i in 1 until 14) {
+                    sb.append(lines[i])
+                    sb.append('\n')
+                }
+                sendEncrypted(outputStream, MsgPacket(name, sb.toString()), serverCrypto)
+                Thread.sleep(delay * delay_ms)
             }
             shouldRun.set(false)
         }
@@ -118,13 +102,12 @@ fun main(args: Array<String>) {
                 val chunk = recvPlainText(inputStream, cryptoPacketFactory, clientCrypto, prvKey)
                 val packet = ChatPacketFactory.fromBytes(chunk)
                 if (packet is MsgPacket) {
-                    UI.putMessage(packet.sender, packet.msg, UI.MessageTy.Msg)
-                } else if (packet is LeavingPacket) {
-                    UI.putMessage("server", "@${packet.username} has left", UI.MessageTy.Info)
-                } else if (packet is JoinPacket) {
-                    UI.putMessage("server", "@${packet.username} has joined", UI.MessageTy.Info)
+                    if (packet.sender == name)
+                        UI.putMessage(packet.sender, packet.msg, UI.MessageTy.Msg)
+                    else
+                        messageFwd.add(packet)
                 } else {
-                    UI.log("client", "Unexpected packet $packet")
+                    messageFwd.add(packet)
                 }
             }
         }

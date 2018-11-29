@@ -18,11 +18,11 @@ class CryptoPacketFactory<PuK: Key, PrK: Key, Crypto: AsymmetricCryptosystem<PuK
         val op = bb.getShort(0)
         assert(op == CryptoPacket.Ops.OP_CIPHER_TEXT)
 
-        val len = bb.getShort(2).toInt()
+        val len = bb.getInt(2)
 
         val buf = ByteArray(len)
         for (i in 0 until len)
-            buf[i] = bb[4 + i]
+            buf[i] = bb[6 + i]
 
         return CipherTextPacket(buf, crypto)
     }

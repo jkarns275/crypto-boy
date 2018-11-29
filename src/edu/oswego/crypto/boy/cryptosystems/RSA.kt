@@ -33,7 +33,9 @@ class RSA<PuK, PrK>(publicKey: PuK)
         if (blockwidth * nblocks < plaintext.size)
             nblocks += 1
         var cipherBlocks = Array(nblocks) { _ -> ByteArray(blocksize) }
-        val tmp = ByteArray(blockwidth)
+        // There is an extra byte in the first position (most significant position) to guarentee that it will be interpreted
+        // as unsigned
+        val tmp = ByteArray(blockwidth + 1)
 
         // Adds padding to plaintext
         val bb = ByteBuffer.allocate(blockwidth * nblocks)
@@ -46,7 +48,7 @@ class RSA<PuK, PrK>(publicKey: PuK)
             tmp.fill(0)
             val offset = i * blockwidth
             for (j in 0 until blockwidth) {
-                tmp[j] = bb[offset + j]
+                tmp[1 + j] = bb[offset + j]
             }
             val num = BigInteger(tmp)
             val res = num.modPow(e, n).toByteArray()

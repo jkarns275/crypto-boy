@@ -46,11 +46,11 @@ object ChatPacketFactory {
         val ubb = ByteBuffer.wrap(ubytes)
         ubb.put(bytes, 2, usernameLength)
 
-        val length = bb.getShort(2 + usernameLength).toInt()
+        val length = bb.getInt(2 + usernameLength)
 
         val sbytes = ByteArray(length)
         val sbb = ByteBuffer.wrap(sbytes)
-        sbb.put(bytes, 4 + usernameLength, length)
+        sbb.put(bytes, 6 + usernameLength, length)
 
         return MsgPacket(String(ubytes), String(sbytes))
     }
@@ -61,7 +61,7 @@ object ChatPacketFactory {
         val length = bytes[1].toInt()
         val sbytes = ByteArray(length)
         for (i in 0 until length) {
-            sbytes[i] = sbytes[2 + i]
+            sbytes[i] = bytes[2 + i]
         }
         return LeavingPacket(String(sbytes))
     }
@@ -83,7 +83,7 @@ object ChatPacketFactory {
                 ChatPacket.Ops.OP_BYE       -> return byePacket(bytes)
             }
         } catch (e: Exception) {
-            UI.log("ChatPacketFactory", "Encountered the following exception: \n" + e.toString())
+            e.printStackTrace()
         }
         return null
     }
