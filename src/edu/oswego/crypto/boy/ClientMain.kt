@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
 
     var serverIpStr = "0.0.0.0"
     var serverIp: InetAddress = ROUTER_IP // InetAddress.getByName(serverIpStr)
-    /* comment this line out to allow custom ip
+    //* comment this line out to allow custom ip
     // Uncomment this if you want to
     while (true) {
         serverIpStr = UI.prompt("What is the server ip?")
