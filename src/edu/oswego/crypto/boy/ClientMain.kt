@@ -28,6 +28,7 @@ val ROUTER_IP = InetAddress.getByName("0.0.0.0")
 
 fun main(args: Array<String>) {
     val victim = args[0] == "-isvictim"
+    val victimNumber = if (victim) { Integer.parseInt(args[1]) } else 0
     var name = ""
     while (true) {
         name = UI.prompt("What is your name?")
@@ -70,7 +71,7 @@ fun main(args: Array<String>) {
         val inputStream = socket.getInputStream()
 
         if (victim)
-            outputStream.write(byteArrayOf(-1))
+            outputStream.write(byteArrayOf((-victimNumber).toByte()))
 
         val helloPacket = HelloPacket(puk)
         writeChunk(outputStream, helloPacket.toBytes())

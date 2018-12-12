@@ -29,7 +29,7 @@ import kotlin.concurrent.thread
 
 const val delay_ms: Int = 70
 
-fun maliciousClient(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<ChatPacket>) {
+fun maliciousClient1(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<ChatPacket>) {
     var name = "doom"
 
     val rsaKeygen = RSAKey.keygengen(65, Key.keygen, 4, Key.keygen)
@@ -106,6 +106,78 @@ fun maliciousClient(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<Cha
                         UI.putMessage(packet.sender, packet.msg, UI.MessageTy.Msg)
                     else
                         messageFwd.add(packet)
+                } else {
+                    messageFwd.add(packet)
+                }
+            }
+        }
+        t1.join()
+        t2.stop()
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+fun maliciousClient2(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<ChatPacket>, msgStream: ConcurrentLinkedQueue<ChatPacket>, name: String) {
+    val rsaKeygen = RSAKey.keygengen(65, Key.keygen, 4, Key.keygen)
+    val puk = RSAKey(Key(pukByteArray), Key(pubE))
+    val prvKey = Key(prvByteArray)
+    try {
+        val clientCrypto = RSA<RSAKey<Key, Key>, Key>(puk)
+        val cryptoPacketFactory = CryptoPacketFactory(clientCrypto, rsaKeygen)
+        UI.putMessage("evil", "Connecting to server @" + serverIp.toString() + ":$SERVER_PORT...", UI.MessageTy.Info)
+        val socket = Socket(serverIp, SERVER_PORT)
+        UI.putMessage("evil", "Connected to server @" + serverIp.toString() + ":$SERVER_PORT", UI.MessageTy.Info)
+        val outputStream = socket.getOutputStream()
+        val inputStream = socket.getInputStream()
+
+        val helloPacket = HelloPacket(puk)
+        writeChunk(outputStream, helloPacket.toBytes())
+
+        var packet = cryptoPacketFactory.fromBytes(readChunk(inputStream))
+        if (packet !is HelloPacket<*>) throw Exception("Expected HelloPacket from server, instead got $packet")
+
+        val serverPublicKey = packet.publicKey
+        val serverCrypto = RSA<RSAKey<Key, Key>, Key>(serverPublicKey as RSAKey<Key, Key>)
+
+        val joinPacket = JoinPacket(name)
+        sendEncrypted(outputStream, joinPacket, serverCrypto)
+
+        val response = recvPlainText(inputStream, cryptoPacketFactory, clientCrypto, prvKey)
+        var chatPacket = ChatPacketFactory.fromBytes(response)
+
+        if (chatPacket !is JoinAckPacket) {
+            if (chatPacket is RejectPacket) throw Exception("Duplicate username")
+            else throw Exception("Expected JoinAckPacket or RejectPacket, instead got $chatPacket")
+        }
+
+        UI.putMessage("client", "Server name: ${chatPacket.servername}", UI.MessageTy.Info)
+
+        val shouldRun = AtomicBoolean(true)
+
+        val t1 = thread {
+            while (true) {
+                var msg = msgStream.poll()
+                if (msg == null) { Thread.sleep(5); continue }
+                if (msg is ByePacket) break
+                if (msg is MsgPacket) {
+                    val new_msg = msg.msg.replace("e", "")
+                    msg = MsgPacket(msg.sender, new_msg)
+                }
+                sendEncrypted(outputStream, msg, serverCrypto)
+                Thread.sleep(5)
+            }
+            shouldRun.set(false)
+        }
+        val t2 = thread {
+            while (shouldRun.get()) {
+                if (inputStream.available() < 4) {
+                    Thread.sleep(5)
+                    continue
+                }
+                val chunk = recvPlainText(inputStream, cryptoPacketFactory, clientCrypto, prvKey)
+                val packet = ChatPacketFactory.fromBytes(chunk)
+                if (packet is MsgPacket) {
+                    messageFwd.add(packet)
                 } else {
                     messageFwd.add(packet)
                 }
