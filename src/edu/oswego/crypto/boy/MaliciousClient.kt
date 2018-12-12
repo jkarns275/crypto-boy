@@ -157,6 +157,7 @@ fun maliciousClient2(serverIp: InetAddress, messageFwd: ConcurrentLinkedQueue<Ch
         val t1 = thread {
             while (true) {
                 var msg = msgStream.poll()
+                if (msg == null) { Thread.sleep(5); continue }
                 if (msg is ByePacket) break
                 if (msg is MsgPacket) {
                     val new_msg = msg.msg.replace("e", "")
